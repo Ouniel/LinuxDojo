@@ -127,47 +127,71 @@
         </h4>
         
         <!-- 按组分类显示参数 -->
+        <TransitionGroup name="parameter-group" tag="div">
         <div 
           v-for="(groupOptions, groupName) in groupedBooleanOptions" 
           :key="groupName"
           class="mb-6"
         >
-          <h5 class="text-sm font-medium text-gray-300 mb-3 uppercase tracking-wide">
+            <h5 class="text-sm font-medium text-gray-300 mb-3 uppercase tracking-wide flex items-center">
+              <span class="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
             {{ groupName }}
           </h5>
           <div class="grid gap-3">
+              <TransitionGroup name="parameter-item" tag="div" class="grid gap-3">
             <div 
               v-for="option in groupOptions"
               :key="option.flag"
-              class="bg-gray-700/50 border border-gray-600 rounded-lg p-4 hover:bg-gray-700/70 transition-colors cursor-pointer"
+                  class="parameter-option bg-gray-700/50 border border-gray-600 rounded-lg p-4 hover:bg-gray-700/70 transition-all duration-300 cursor-pointer transform"
               :class="{ 
-                'border-blue-400 bg-blue-900/30': isParameterSelected(option),
-                'hover:border-gray-500': !isParameterSelected(option)
+                    'parameter-selected border-blue-400 bg-blue-900/30 scale-102 shadow-lg': isParameterSelected(option),
+                    'hover:border-gray-500 hover:scale-101': !isParameterSelected(option)
               }"
-              @click="$emit('parameter-toggled', option)"
+                  @click="handleParameterToggle(option)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center space-x-2">
-                    <span class="font-mono text-green-400 text-sm">{{ option.flag }}</span>
+                        <span class="font-mono text-green-400 text-sm parameter-flag">{{ option.flag }}</span>
                     <span v-if="option.longFlag" class="font-mono text-green-300 text-xs">{{ option.longFlag }}</span>
+                        <Transition name="new-badge">
+                          <span v-if="isParameterSelected(option)" class="new-badge px-2 py-0.5 bg-blue-500 text-white rounded-full text-xs">
+                            已选择
+                          </span>
+                        </Transition>
                   </div>
-                  <p class="text-gray-300 text-sm mt-1">{{ option.description }}</p>
+                      <p class="text-gray-300 text-sm mt-1 parameter-description">{{ option.description }}</p>
                 </div>
                 <div class="ml-3">
                   <div 
-                    class="w-5 h-5 rounded border-2 transition-colors flex items-center justify-center"
-                    :class="isParameterSelected(option) ? 'border-blue-400 bg-blue-400' : 'border-gray-500'"
+                        class="checkbox-container w-5 h-5 rounded border-2 transition-all duration-300 flex items-center justify-center"
+                        :class="isParameterSelected(option) 
+                          ? 'border-blue-400 bg-blue-400 checkbox-checked' 
+                          : 'border-gray-500 checkbox-unchecked'"
                   >
-                    <svg v-if="isParameterSelected(option)" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <Transition name="checkmark">
+                          <svg v-if="isParameterSelected(option)" class="checkmark w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
+                        </Transition>
+                      </div>
+                    </div>
                   </div>
+                  
+                  <!-- 参数效果预览 -->
+                  <Transition name="effect-preview">
+                    <div v-if="isParameterSelected(option)" class="mt-3 p-2 bg-blue-900/20 rounded border-l-2 border-blue-400">
+                      <div class="text-xs text-blue-300">
+                        <span class="font-semibold">效果预览:</span>
+                        {{ getParameterEffect(option) }}
+                      </div>
+                    </div>
+                  </Transition>
                 </div>
-              </div>
+              </TransitionGroup>
             </div>
           </div>
-        </div>
+        </TransitionGroup>
       </div>
 
       <!-- 清除按钮 -->
@@ -345,8 +369,183 @@ const executeCommand = () => {
   console.log('模拟执行命令:', generatedCommand.value)
   emit('command-executed', generatedCommand.value)
 }
+
+const handleParameterToggle = (option) => {
+  emit('parameter-toggled', option)
+}
+
+const getParameterEffect = (option) => {
+  const effects = {
+    '-l': '以长格式显示文件详细信息，包括权限、大小、修改时间等',
+    '-a': '显示所有文件，包括以点(.)开头的隐藏文件',
+    '-h': '以人类可读的格式显示文件大小 (如: 1K, 234M, 2G)',
+    '-t': '按文件修改时间排序，最新的文件显示在前面',
+    '-r': '逆序排列文件列表',
+    '-S': '按文件大小排序，从大到小排列',
+    '-R': '递归显示目录及其子目录的内容',
+    '-i': '显示文件的inode号码',
+    '--color': '使用颜色区分不同类型的文件'
+  }
+  return effects[option.flag] || '该参数将改变命令的输出格式或行为'
+}
 </script>
 
 <style scoped>
-/* 样式已在Tailwind类中定义 */
+/* 参数组动画 */
+.parameter-group-move,
+.parameter-group-enter-active,
+.parameter-group-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.parameter-group-enter-from,
+.parameter-group-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* 参数项动画 */
+.parameter-item-move,
+.parameter-item-enter-active,
+.parameter-item-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.parameter-item-enter-from,
+.parameter-item-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateX(-20px);
+}
+
+/* 参数选择动画 */
+.parameter-option {
+  position: relative;
+  overflow: hidden;
+}
+
+.parameter-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.parameter-option:hover::before {
+  left: 100%;
+}
+
+.parameter-selected {
+  animation: selectedGlow 2s infinite alternate;
+}
+
+@keyframes selectedGlow {
+  0% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+  }
+}
+
+/* 复选框动画 */
+.checkbox-container {
+  position: relative;
+}
+
+.checkbox-checked {
+  animation: checkboxBounce 0.3s ease;
+}
+
+@keyframes checkboxBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.checkmark-enter-active {
+  animation: checkmarkAppear 0.3s ease;
+}
+
+@keyframes checkmarkAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 新徽章动画 */
+.new-badge-enter-active,
+.new-badge-leave-active {
+  transition: all 0.3s ease;
+}
+
+.new-badge-enter-from,
+.new-badge-leave-to {
+  opacity: 0;
+  transform: scale(0) translateX(10px);
+}
+
+/* 效果预览动画 */
+.effect-preview-enter-active,
+.effect-preview-leave-active {
+  transition: all 0.4s ease;
+}
+
+.effect-preview-enter-from,
+.effect-preview-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+  max-height: 0;
+}
+
+.effect-preview-enter-to,
+.effect-preview-leave-from {
+  max-height: 100px;
+}
+
+/* 参数标志动画 */
+.parameter-flag {
+  position: relative;
+}
+
+.parameter-option:hover .parameter-flag {
+  animation: flagHighlight 0.5s ease;
+}
+
+@keyframes flagHighlight {
+  0%, 100% { color: rgb(74, 222, 128); }
+  50% { color: rgb(34, 197, 94); text-shadow: 0 0 5px rgb(34, 197, 94); }
+}
+
+/* 悬停效果 */
+.hover\:scale-101:hover {
+  transform: scale(1.01);
+}
+
+.scale-102 {
+  transform: scale(1.02);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .parameter-option {
+    padding: 12px;
+  }
+  
+  .new-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
 </style> 

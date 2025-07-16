@@ -1,7 +1,7 @@
 <template>
   <div class="h-full bg-gray-900 text-white overflow-hidden">
     <!-- find 命令可视化 -->
-    <div v-if="command.startsWith('find')" class="h-full flex flex-col">
+    <div v-if="props.command && props.command.startsWith('find')" class="h-full flex flex-col">
       <div class="bg-gradient-to-r from-green-600 to-teal-600 p-4 flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <span class="text-2xl">🔍</span>
@@ -95,7 +95,7 @@
     </div>
 
     <!-- tree 命令可视化 -->
-    <div v-else-if="command.startsWith('tree')" class="h-full flex flex-col">
+    <div v-else-if="props.command && props.command.startsWith('tree')" class="h-full flex flex-col">
       <div class="bg-gradient-to-r from-purple-600 to-pink-600 p-4">
         <div class="flex items-center space-x-3">
           <span class="text-2xl">🌳</span>
@@ -150,13 +150,35 @@
     </div>
 
     <!-- ls 命令增强可视化 -->
-    <div v-else-if="command.startsWith('ls')" class="h-full flex flex-col">
+    <div v-else-if="props.command && props.command.startsWith('ls')" class="h-full flex flex-col">
       <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-4">
         <div class="flex items-center space-x-3">
           <span class="text-2xl">📁</span>
           <div>
             <h2 class="text-xl font-bold">目录内容浏览器</h2>
             <p class="text-blue-100 text-sm">增强型文件列表展示</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 参数效果指示器 -->
+      <div v-if="hasParameters" class="p-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 border-b border-gray-700">
+        <div class="flex items-center space-x-4 text-sm">
+          <div v-if="props.command && props.command.includes('-l')" class="flex items-center space-x-2 animate-pulse">
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+            <span class="text-green-400">详细列表模式</span>
+          </div>
+          <div v-if="props.command && props.command.includes('-a')" class="flex items-center space-x-2 animate-pulse">
+            <span class="w-2 h-2 bg-yellow-400 rounded-full"></span>
+            <span class="text-yellow-400">显示隐藏文件</span>
+          </div>
+          <div v-if="props.command && props.command.includes('-h')" class="flex items-center space-x-2 animate-pulse">
+            <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+            <span class="text-blue-400">人类可读格式</span>
+          </div>
+          <div v-if="props.command && props.command.includes('-t')" class="flex items-center space-x-2 animate-pulse">
+            <span class="w-2 h-2 bg-purple-400 rounded-full"></span>
+            <span class="text-purple-400">按时间排序</span>
           </div>
         </div>
       </div>
@@ -168,25 +190,29 @@
             <button 
               v-for="view in viewModes" 
               :key="view.id"
-              @click="currentView = view.id"
-              class="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              @click="switchView(view.id)"
+              class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform"
               :class="currentView === view.id 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                ? 'bg-blue-500 text-white scale-105 shadow-lg' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:scale-102'"
             >
               {{ view.icon }} {{ view.name }}
             </button>
           </div>
-          <div class="flex space-x-2">
-            <select v-model="sortBy" class="bg-gray-700 text-white rounded px-3 py-2 text-sm">
+          <div class="flex items-center space-x-2">
+            <select 
+              v-model="sortBy" 
+              @change="onSortChange"
+              class="bg-gray-700 text-white rounded px-2 py-1 text-sm border border-gray-600"
+            >
               <option value="name">按名称</option>
               <option value="size">按大小</option>
-              <option value="date">按日期</option>
               <option value="type">按类型</option>
+              <option value="date">按日期</option>
             </select>
             <button 
-              @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-              class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm"
+              @click="toggleSortOrder" 
+              class="bg-gray-700 hover:bg-gray-600 text-white rounded px-2 py-1 text-sm border border-gray-600"
             >
               {{ sortOrder === 'asc' ? '↑' : '↓' }}
             </button>
@@ -194,89 +220,124 @@
         </div>
       </div>
 
-      <!-- 文件展示区 -->
+      <!-- 动态内容区域 -->
       <div class="flex-1 p-4 overflow-hidden">
-        <!-- 网格视图 -->
-        <div v-if="currentView === 'grid'" class="grid grid-cols-6 gap-4 h-full overflow-y-auto">
-          <div 
-            v-for="file in sortedFiles" 
-            :key="file.name"
-            class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors cursor-pointer text-center"
-          >
-            <div class="text-4xl mb-2">{{ file.icon }}</div>
-            <div class="text-sm font-medium text-white truncate">{{ file.name }}</div>
-            <div class="text-xs text-gray-400 mt-1">{{ file.size }}</div>
-          </div>
-        </div>
-
-        <!-- 列表视图 -->
-        <div v-else-if="currentView === 'list'" class="h-full overflow-y-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-700 sticky top-0">
-              <tr>
-                <th class="text-left p-3 text-cyan-400">名称</th>
-                <th class="text-left p-3 text-cyan-400">大小</th>
-                <th class="text-left p-3 text-cyan-400">类型</th>
-                <th class="text-left p-3 text-cyan-400">权限</th>
-                <th class="text-left p-3 text-cyan-400">修改时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr 
-                v-for="file in sortedFiles" 
+        <Transition name="view-change" mode="out-in">
+          <!-- 网格视图 -->
+          <div v-if="currentView === 'grid'" key="grid" class="grid grid-cols-3 gap-4 h-full overflow-y-auto">
+            <TransitionGroup 
+              name="file-item" 
+              tag="div" 
+              class="contents"
+              @before-enter="onBeforeEnter"
+              @enter="onEnter"
+            >
+              <div 
+                v-for="(file, index) in sortedFiles" 
                 :key="file.name"
-                class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
+                :data-index="index"
+                class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-all duration-300 transform hover:scale-102"
+                :class="getFileAnimationClass(file)"
               >
-                <td class="p-3 flex items-center space-x-3">
-                  <span class="text-xl">{{ file.icon }}</span>
-                  <span class="font-medium text-white">{{ file.name }}</span>
-                </td>
-                <td class="p-3 text-gray-300">{{ file.size }}</td>
-                <td class="p-3">
-                  <span class="px-2 py-1 rounded text-xs" :class="getTypeClass(file.type)">
-                    {{ file.type }}
-                  </span>
-                </td>
-                <td class="p-3 font-mono text-gray-400">{{ file.permissions }}</td>
-                <td class="p-3 text-gray-400">{{ file.modified }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 详细视图 -->
-        <div v-else class="grid grid-cols-2 gap-4 h-full overflow-y-auto">
-          <div 
-            v-for="file in sortedFiles" 
-            :key="file.name"
-            class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors"
-          >
-            <div class="flex items-start space-x-4">
-              <div class="text-4xl">{{ file.icon }}</div>
-              <div class="flex-1">
-                <h3 class="font-semibold text-white text-lg">{{ file.name }}</h3>
-                <div class="mt-2 space-y-1 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-gray-400">大小:</span>
-                    <span class="text-white">{{ file.size }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-400">类型:</span>
-                    <span :class="getTypeClass(file.type)" class="px-2 py-1 rounded text-xs">{{ file.type }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-400">权限:</span>
-                    <span class="font-mono text-gray-300">{{ file.permissions }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-400">修改:</span>
-                    <span class="text-gray-300">{{ file.modified }}</span>
+                <div class="flex items-start space-x-4">
+                  <div class="text-4xl transition-transform duration-300 hover:scale-110">{{ file.icon }}</div>
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-white text-lg">{{ file.name }}</h3>
+                    <div class="mt-2 space-y-1 text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-gray-400">大小:</span>
+                        <span class="text-white">{{ file.size }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-400">类型:</span>
+                        <span :class="getTypeClass(file.type)" class="px-2 py-1 rounded text-xs">{{ file.type }}</span>
+                      </div>
+                      <div v-if="props.command && props.command.includes('-l')" class="flex justify-between">
+                        <span class="text-gray-400">权限:</span>
+                        <span class="font-mono text-gray-300">{{ file.permissions }}</span>
+                      </div>
+                      <div v-if="props.command && props.command.includes('-l')" class="flex justify-between">
+                        <span class="text-gray-400">修改:</span>
+                        <span class="text-gray-300">{{ file.modified }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+            </TransitionGroup>
+          </div>
+
+          <!-- 列表视图 -->
+          <div v-else-if="currentView === 'list'" key="list" class="h-full overflow-y-auto">
+            <div class="bg-gray-800 rounded-lg">
+              <div class="grid grid-cols-4 gap-4 p-3 bg-gray-700/50 border-b border-gray-600 text-sm font-semibold text-gray-300">
+                <div>名称</div>
+                <div>大小</div>
+                <div>类型</div>
+                <div>修改时间</div>
+              </div>
+              <TransitionGroup name="table-row" tag="div">
+                <div 
+                  v-for="file in sortedFiles" 
+                  :key="file.name"
+                  class="grid grid-cols-4 gap-4 p-3 border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors"
+                >
+                  <div class="flex items-center space-x-2">
+                    <span class="text-lg">{{ file.icon }}</span>
+                    <span class="text-white">{{ file.name }}</span>
+                  </div>
+                  <div class="text-gray-300">{{ file.size }}</div>
+                  <div>
+                    <span :class="getTypeClass(file.type)" class="px-2 py-1 rounded text-xs">{{ file.type }}</span>
+                  </div>
+                  <div class="text-gray-400 text-sm">{{ file.modified }}</div>
+                </div>
+              </TransitionGroup>
             </div>
           </div>
-        </div>
+
+          <!-- 详细视图 -->
+          <div v-else key="detail" class="h-full overflow-y-auto">
+            <TransitionGroup 
+              name="detail-card" 
+              tag="div" 
+              class="space-y-4"
+            >
+              <div 
+                v-for="(file, index) in sortedFiles" 
+                :key="file.name"
+                :data-index="index"
+                class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-all duration-300 transform hover:scale-102"
+                :class="getFileAnimationClass(file)"
+              >
+                <div class="flex items-start space-x-4">
+                  <div class="text-4xl transition-transform duration-300 hover:scale-110">{{ file.icon }}</div>
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-white text-lg">{{ file.name }}</h3>
+                    <div class="mt-2 space-y-1 text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-gray-400">大小:</span>
+                        <span class="text-white">{{ file.size }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-400">类型:</span>
+                        <span :class="getTypeClass(file.type)" class="px-2 py-1 rounded text-xs">{{ file.type }}</span>
+                      </div>
+                      <div v-if="props.command && props.command.includes('-l')" class="flex justify-between">
+                        <span class="text-gray-400">权限:</span>
+                        <span class="font-mono text-gray-300">{{ file.permissions }}</span>
+                      </div>
+                      <div v-if="props.command && props.command.includes('-l')" class="flex justify-between">
+                        <span class="text-gray-400">修改:</span>
+                        <span class="text-gray-300">{{ file.modified }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TransitionGroup>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -426,4 +487,147 @@ const getTypeClass = (type) => {
   }
   return typeClasses[type] || 'bg-gray-500/20 text-gray-400'
 }
+
+const hasParameters = computed(() => {
+  return props.command && (props.command.includes('-l') || props.command.includes('-a') || props.command.includes('-h') || props.command.includes('-t'))
+})
+
+const onBeforeEnter = (el) => {
+  el.style.opacity = 0
+  el.style.transform = 'translateY(20px)'
+}
+
+const onEnter = (el, done) => {
+  el.style.opacity = 1
+  el.style.transform = 'translateY(0)'
+  done()
+}
+
+const getFileAnimationClass = (file) => {
+  const typeClasses = {
+    '目录': 'bg-blue-500/20 text-blue-400',
+    'JavaScript': 'bg-yellow-500/20 text-yellow-400',
+    'JSON': 'bg-green-500/20 text-green-400',
+    'Markdown': 'bg-purple-500/20 text-purple-400',
+    '隐藏文件': 'bg-gray-500/20 text-gray-400'
+  }
+  return typeClasses[file.type] || 'bg-gray-500/20 text-gray-400'
+}
+
+const switchView = (viewId) => {
+  currentView.value = viewId
+}
+
+const onSortChange = () => {
+  // 实现排序逻辑
+}
+
+const toggleSortOrder = () => {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
 </script>
+
+<style scoped>
+/* 视图切换动画 */
+.view-change-enter-active,
+.view-change-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.view-change-enter-from {
+  opacity: 0;
+  transform: translateX(50px) scale(0.95);
+}
+
+.view-change-leave-to {
+  opacity: 0;
+  transform: translateX(-50px) scale(0.95);
+}
+
+/* 文件项动画 */
+.file-item-move,
+.file-item-enter-active,
+.file-item-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-item-enter-from,
+.file-item-leave-to {
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+}
+
+.file-item-leave-active {
+  position: absolute;
+}
+
+/* 表格行动画 */
+.table-row-move,
+.table-row-enter-active,
+.table-row-leave-active {
+  transition: all 0.4s ease;
+}
+
+.table-row-enter-from,
+.table-row-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+/* 详细卡片动画 */
+.detail-card-move,
+.detail-card-enter-active,
+.detail-card-leave-active {
+  transition: all 0.5s ease;
+}
+
+.detail-card-enter-from,
+.detail-card-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+}
+
+/* 参数指示器动画 */
+@keyframes parameterGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 15px currentColor;
+  }
+}
+
+.animate-pulse {
+  animation: parameterGlow 2s infinite;
+}
+
+/* 悬停效果增强 */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+.hover\:scale-110:hover {
+  transform: scale(1.1);
+}
+
+/* 响应式网格调整 */
+@media (max-width: 1200px) {
+  .grid-cols-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+</style>

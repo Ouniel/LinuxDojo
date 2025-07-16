@@ -95,24 +95,39 @@
           <div v-if="command" class="mb-4">
             <span class="text-green-400">$ </span>
             <span 
-              class="text-white"
+              class="text-white command-text"
               :class="{ 'typing-animation': isTyping }"
             >
               {{ displayCommand }}
             </span>
-            <span v-if="isTyping" class="animate-pulse text-green-400">▊</span>
+            <span v-if="isTyping" class="animate-pulse text-green-400 cursor-blink">▊</span>
           </div>
           
           <!-- 命令输出 -->
-          <div v-if="output && !isTyping" class="mb-4">
-            <pre class="text-gray-100 whitespace-pre-wrap leading-relaxed">{{ output }}</pre>
+          <Transition name="output-appear" mode="out-in">
+            <div v-if="output && !isTyping" key="output" class="mb-4">
+              <TransitionGroup name="output-line" tag="div">
+                <pre 
+                  v-for="(line, index) in outputLines"
+                  :key="index"
+                  class="text-gray-100 whitespace-pre-wrap leading-relaxed output-line"
+                  :style="{ 
+                    animationDelay: `${index * 50}ms`,
+                    '--line-index': index
+                  }"
+                >{{ line }}</pre>
+              </TransitionGroup>
           </div>
+          </Transition>
           
           <!-- 执行状态 -->
-          <div v-if="isExecuting" class="flex items-center space-x-2 text-yellow-400 mb-2">
-            <div class="animate-spin w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
-            <span>执行中...</span>
+          <Transition name="status-fade">
+            <div v-if="isExecuting" class="flex items-center space-x-2 text-yellow-400 mb-2 execution-status">
+              <div class="loading-spinner w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
+              <span class="typing-text">执行中</span>
+              <span class="dots">...</span>
           </div>
+          </Transition>
           
           <!-- 新的命令提示符 -->
           <div v-if="output && !isTyping" class="flex items-center">
@@ -146,7 +161,7 @@
           </div>
           <div class="bg-gray-700/50 border border-gray-600 rounded-lg p-3">
             <div class="text-xs text-gray-400">输出行数</div>
-            <div class="text-lg font-bold text-cyan-400">{{ outputLines }}</div>
+            <div class="text-lg font-bold text-cyan-400 counter">{{ outputLines.length }}</div>
           </div>
         </div>
       </div>
@@ -252,7 +267,8 @@ const scenarios = ref([
 
 // 计算属性
 const outputLines = computed(() => {
-  return props.output ? props.output.split('\n').length : 0
+  if (!props.output) return []
+  return props.output.split('\n')
 })
 
 const isIptablesCommand = computed(() => {
@@ -319,29 +335,61 @@ const getNetworkTarget = () => {
 }
 
 const parameterExplanations = computed(() => {
-  // 这里应该根据当前命令和参数生成解释
-  // 暂时返回空数组
-  return []
+  if (!props.command) return []
+  
+  const explanations = []
+  if (props.command.includes('-l')) {
+    explanations.push({
+      param: '-l',
+      type: '显示格式',
+      description: '以长格式显示详细信息，包括权限、大小、修改时间等'
+    })
+  }
+  if (props.command.includes('-a')) {
+    explanations.push({
+      param: '-a',
+      type: '文件过滤',
+      description: '显示所有文件，包括以点(.)开头的隐藏文件'
+    })
+  }
+  if (props.command.includes('-h')) {
+    explanations.push({
+      param: '-h',
+      type: '单位格式',
+      description: '以人类可读的格式显示文件大小 (如: 1K, 234M, 2G)'
+    })
+  }
+  if (props.command.includes('-t')) {
+    explanations.push({
+      param: '-t',
+      type: '排序方式',
+      description: '按文件修改时间排序，最新的文件显示在前面'
+    })
+  }
+  return explanations
 })
 
 const relatedCommands = computed(() => {
-  // 基于当前命令推荐相关命令
-  const commandName = props.command?.split(' ')[0]
-  const related = {
-    ls: [
-      { name: 'cd', icon: '📁', description: '切换目录' },
-      { name: 'pwd', icon: '📍', description: '显示当前路径' }
+  const currentCmd = props.command?.split(' ')[0]
+  const recommendations = {
+    'ls': [
+      { name: 'tree', icon: '🌳', description: '显示目录树结构' },
+      { name: 'find', icon: '🔍', description: '查找文件和目录' }
     ],
-    cd: [
-      { name: 'ls', icon: '📋', description: '列出文件' },
-      { name: 'pwd', icon: '📍', description: '显示当前路径' }
+    'find': [
+      { name: 'grep', icon: '🔎', description: '搜索文本内容' },
+      { name: 'locate', icon: '📍', description: '快速定位文件' }
     ],
-    grep: [
-      { name: 'find', icon: '🔍', description: '查找文件' },
-      { name: 'cat', icon: '📄', description: '查看文件内容' }
+    'grep': [
+      { name: 'sed', icon: '✏️', description: '文本替换编辑' },
+      { name: 'awk', icon: '🔄', description: '文本处理工具' }
+    ],
+    'cd': [
+      { name: 'ls', icon: '📋', description: '列出当前目录文件' },
+      { name: 'pwd', icon: '📍', description: '显示当前路径' }
     ]
   }
-  return related[commandName] || []
+  return recommendations[currentCmd] || []
 })
 
 // 方法
@@ -369,28 +417,26 @@ const updateTime = () => {
 }
 
 // 模拟打字效果
-const typeCommand = (command) => {
+const typeCommand = async () => {
+  if (!props.command) return
+  
   isTyping.value = true
   displayCommand.value = ''
-  let index = 0
   
-  const typeInterval = setInterval(() => {
-    if (index < command.length) {
-      displayCommand.value += command[index]
-      index++
-    } else {
-      clearInterval(typeInterval)
+  for (let i = 0; i < props.command.length; i++) {
+    displayCommand.value += props.command[i]
+    await new Promise(resolve => setTimeout(resolve, 30))
+  }
+  
       isTyping.value = false
-    }
-  }, 50)
 }
 
 // 监听命令变化
-watch(() => props.command, (newCommand) => {
-  if (newCommand) {
+watch(() => props.command, async (newCmd) => {
+  if (newCmd) {
     // 模拟执行时间
     executionTime.value = Math.floor(Math.random() * 200) + 50
-    typeCommand(newCommand)
+    await typeCommand()
   }
 })
 
@@ -406,13 +452,42 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 终端窗口样式保持不变 */
 .terminal-window {
-  border: 1px solid #374151;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 1px solid #333;
   border-radius: 8px;
-  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 玻璃形态效果 */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* 命令文本动画 */
+.command-text {
+  display: inline-block;
+  position: relative;
 }
 
 .typing-animation {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typeText 2s steps(40, end);
+}
+
+@keyframes typeText {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* 光标闪烁动画 */
+.cursor-blink {
   animation: blink 1s infinite;
 }
 
@@ -421,18 +496,188 @@ onMounted(() => {
   51%, 100% { opacity: 0; }
 }
 
-/* 自定义滚动条 */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 4px;
+/* 输出内容出现动画 */
+.output-appear-enter-active,
+.output-appear-leave-active {
+  transition: all 0.5s ease;
 }
 
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: rgba(55, 65, 81, 0.3);
-  border-radius: 2px;
+.output-appear-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.6);
-  border-radius: 2px;
+.output-appear-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* 输出行动画 */
+.output-line-enter-active {
+  transition: all 0.3s ease;
+  transition-delay: calc(var(--line-index) * 50ms);
+}
+
+.output-line-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.output-line {
+  animation: lineAppear 0.3s ease forwards;
+  animation-delay: calc(var(--line-index) * 50ms);
+  opacity: 0;
+}
+
+@keyframes lineAppear {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 执行状态动画 */
+.status-fade-enter-active,
+.status-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.status-fade-enter-from,
+.status-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.execution-status {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/* 加载动画 */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 打字效果文本 */
+.typing-text {
+  display: inline-block;
+  animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow {
+  from {
+    text-shadow: 0 0 5px currentColor;
+  }
+  to {
+    text-shadow: 0 0 10px currentColor, 0 0 15px currentColor;
+  }
+}
+
+/* 点点点动画 */
+.dots {
+  display: inline-block;
+  animation: dots 1.5s infinite;
+}
+
+.dots::after {
+  content: '';
+  animation: dotsContent 1.5s infinite;
+}
+
+@keyframes dotsContent {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+/* 统计信息动画 */
+.stats-card {
+  transition: all 0.3s ease;
+  animation: cardFloat 3s ease-in-out infinite;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes cardFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+/* 数值计数动画 */
+.counter {
+  animation: countUp 0.5s ease-out;
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 推荐命令动画 */
+.recommendation-item {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.recommendation-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.recommendation-item:hover::before {
+  left: 100%;
+}
+
+.recommendation-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .typing-animation {
+    animation-duration: 1.5s;
+  }
+  
+  .output-line {
+    animation-delay: calc(var(--line-index) * 30ms);
+  }
 }
 </style> 

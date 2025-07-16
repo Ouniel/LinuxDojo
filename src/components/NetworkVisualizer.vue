@@ -228,11 +228,29 @@
         </div>
       </div>
     </div>
+
+    <!-- SSH代理可视化 -->
+    <div v-if="commandType === 'ssh-proxy'" class="space-y-6">
+      <SSHProxyVisualizer :command="props.command" />
+    </div>
+
+    <!-- Netcat 可视化 -->
+    <div v-if="commandType === 'nc'" class="space-y-6">
+      <NetcatVisualizer :command="props.command" />
+    </div>
+
+    <!-- OpenSSL 可视化 -->
+    <div v-if="commandType === 'openssl'" class="space-y-6">
+      <OpenSSLVisualizer :command="props.command" />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import SSHProxyVisualizer from './SSHProxyVisualizer.vue'
+import NetcatVisualizer from './NetcatVisualizer.vue'
+import OpenSSLVisualizer from './OpenSSLVisualizer.vue'
 
 // Props
 const props = defineProps({
@@ -251,6 +269,9 @@ const commandType = computed(() => {
   if (props.command.includes('ping')) return 'ping'
   if (props.command.includes('netstat')) return 'netstat'
   if (props.command.includes('traceroute')) return 'traceroute'
+  if (props.command.includes('ssh') && (props.command.includes('-L') || props.command.includes('-D') || props.command.includes('-R'))) return 'ssh-proxy'
+  if (props.command.includes('nc ') || props.command.startsWith('nc ')) return 'nc'
+  if (props.command.includes('openssl')) return 'openssl'
   return 'ping'
 })
 

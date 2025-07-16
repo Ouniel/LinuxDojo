@@ -399,6 +399,18 @@ export const useCommandsStore = defineStore('commands', () => {
                     type: 'boolean',
                     group: 'search'
                 },
+                {
+                    flag: '-G',
+                    description: '支持基本正则表达式（默认）',
+                    type: 'boolean',
+                    group: 'search'
+                },
+                {
+                    flag: '-P',
+                    description: '支持Perl正则表达式',
+                    type: 'boolean',
+                    group: 'search'
+                },
                 // 输出控制选项
                 {
                     flag: '-b',
@@ -425,6 +437,18 @@ export const useCommandsStore = defineStore('commands', () => {
                     group: 'output'
                 },
                 {
+                    flag: '-L',
+                    description: '只显示不包含匹配词的文件名',
+                    type: 'boolean',
+                    group: 'output'
+                },
+                {
+                    flag: '-H',
+                    description: '显示文件名称',
+                    type: 'boolean',
+                    group: 'output'
+                },
+                {
                     flag: '-h',
                     description: '搜索多文件时不显示文件名',
                     type: 'boolean',
@@ -432,7 +456,7 @@ export const useCommandsStore = defineStore('commands', () => {
                 },
                 {
                     flag: '-o',
-                    description: '显示匹配词距文件头部的偏移量',
+                    description: '只输出匹配到的部分',
                     type: 'boolean',
                     group: 'output'
                 },
@@ -442,6 +466,39 @@ export const useCommandsStore = defineStore('commands', () => {
                     type: 'boolean',
                     group: 'output'
                 },
+                {
+                    flag: '--color',
+                    description: '高亮显示匹配的字符串',
+                    type: 'select',
+                    group: 'output',
+                    options: ['auto', 'always', 'never'],
+                    inputKey: 'color_option'
+                },
+                // 上下文选项
+                {
+                    flag: '-A',
+                    description: '显示匹配行及其后N行',
+                    type: 'number',
+                    group: 'context',
+                    inputKey: 'after_lines',
+                    placeholder: '显示匹配行后的行数'
+                },
+                {
+                    flag: '-B',
+                    description: '显示匹配行及其前N行',
+                    type: 'number',
+                    group: 'context',
+                    inputKey: 'before_lines',
+                    placeholder: '显示匹配行前的行数'
+                },
+                {
+                    flag: '-C',
+                    description: '显示匹配行及其前后N行',
+                    type: 'number',
+                    group: 'context',
+                    inputKey: 'context_lines',
+                    placeholder: '显示匹配行前后的行数'
+                },
                 // 文件搜索选项
                 {
                     flag: '-r',
@@ -450,10 +507,32 @@ export const useCommandsStore = defineStore('commands', () => {
                     group: 'file'
                 },
                 {
+                    flag: '-R',
+                    description: '递归搜索并跟随符号链接',
+                    type: 'boolean',
+                    group: 'file'
+                },
+                {
                     flag: '-s',
                     description: '不显示没有匹配文本的错误信息',
                     type: 'boolean',
                     group: 'file'
+                },
+                {
+                    flag: '--include',
+                    description: '只搜索符合模式的文件',
+                    type: 'input',
+                    group: 'file',
+                    placeholder: '文件模式，如: *.txt',
+                    inputKey: 'include_pattern'
+                },
+                {
+                    flag: '--exclude',
+                    description: '排除符合模式的文件',
+                    type: 'input',
+                    group: 'file',
+                    placeholder: '文件模式，如: *.log',
+                    inputKey: 'exclude_pattern'
                 },
                 // 输入参数
                 {
@@ -1098,68 +1177,213 @@ export const useCommandsStore = defineStore('commands', () => {
         {
             id: 'ssh',
             name: 'ssh',
-            description: '安全的远程连接服务',
             category: 'network-tools',
-            usage: 'ssh [选项] [用户@]主机名',
-            difficulty: 3,
-            hot: true,
-            icon: '🔐',
+            description: '安全的远程连接服务',
+            usage: 'ssh [参数] 域名或IP地址',
+            difficulty: 4,
+            isHot: true,
+            icon: '🔒',
             options: [
+                // 协议版本
                 {
-                    flag: '-p',
-                    description: '指定SSH连接端口',
-                    type: 'number',
-                    group: 'connection',
-                    placeholder: '端口号，如: 22',
-                    inputKey: 'ssh_port'
+                    flag: '-1',
+                    description: '使用SSH协议版本1',
+                    type: 'boolean',
+                    group: 'protocol'
                 },
                 {
+                    flag: '-2',
+                    description: '使用SSH协议版本2',
+                    type: 'boolean',
+                    group: 'protocol'
+                },
+                // 网络协议
+                {
+                    flag: '-4',
+                    description: '基于IPv4网络协议',
+                    type: 'boolean',
+                    group: 'network'
+                },
+                {
+                    flag: '-6',
+                    description: '基于IPv6网络协议',
+                    type: 'boolean',
+                    group: 'network'
+                },
+                // 认证相关
+                {
                     flag: '-i',
-                    description: '指定私钥文件',
+                    description: '设置密钥文件',
                     type: 'input',
                     group: 'auth',
-                    placeholder: '私钥路径，如: ~/.ssh/id_rsa',
-                    inputKey: 'identity_file'
+                    inputKey: 'identity_file',
+                    placeholder: '密钥文件路径，如: ~/.ssh/id_rsa'
                 },
                 {
                     flag: '-l',
-                    description: '指定登录用户名',
+                    description: '设置登录用户名',
                     type: 'input',
                     group: 'auth',
-                    placeholder: '用户名，如: root',
-                    inputKey: 'login_user'
+                    inputKey: 'login_user',
+                    placeholder: '用户名，如: root'
+                },
+                {
+                    flag: '-a',
+                    description: '关闭认证代理连接转发功能',
+                    type: 'boolean',
+                    group: 'auth'
+                },
+                {
+                    flag: '-A',
+                    description: '开启认证代理连接转发功能',
+                    type: 'boolean',
+                    group: 'auth'
+                },
+                // 连接参数
+                {
+                    flag: '-p',
+                    description: '设置远程服务器上的端口号',
+                    type: 'input',
+                    group: 'connection',
+                    inputKey: 'port',
+                    placeholder: '端口号，如: 22'
+                },
+                {
+                    flag: '-b',
+                    description: '设置本机对外提供服务的IP地址',
+                    type: 'input',
+                    group: 'connection',
+                    inputKey: 'bind_address',
+                    placeholder: 'IP地址，如: 192.168.1.100'
+                },
+                {
+                    flag: '-o',
+                    description: '设置配置参数选项',
+                    type: 'input',
+                    group: 'connection',
+                    inputKey: 'option',
+                    placeholder: '配置选项，如: ConnectTimeout=10'
+                },
+                {
+                    flag: '-F',
+                    description: '设置配置文件',
+                    type: 'input',
+                    group: 'connection',
+                    inputKey: 'config_file',
+                    placeholder: '配置文件路径，如: ~/.ssh/config'
+                },
+                // 执行模式
+                {
+                    flag: '-N',
+                    description: '不执行远程指令',
+                    type: 'boolean',
+                    group: 'execution'
+                },
+                {
+                    flag: '-q',
+                    description: '静默执行模式',
+                    type: 'boolean',
+                    group: 'execution'
                 },
                 {
                     flag: '-v',
-                    description: '详细模式，显示连接过程',
+                    description: '显示执行过程详细信息',
                     type: 'boolean',
-                    group: 'options'
+                    group: 'execution'
+                },
+                {
+                    flag: '-f',
+                    description: '后台执行ssh命令',
+                    type: 'boolean',
+                    group: 'execution'
+                },
+                // 数据处理
+                {
+                    flag: '-C',
+                    description: '压缩所有数据',
+                    type: 'boolean',
+                    group: 'data'
+                },
+                {
+                    flag: '-c',
+                    description: '设置会话的密码算法',
+                    type: 'input',
+                    group: 'data',
+                    inputKey: 'cipher',
+                    placeholder: '密码算法，如: aes128-ctr'
+                },
+                // 转发功能
+                {
+                    flag: '-L',
+                    description: '本地端口转发 (本地转发)',
+                    type: 'input',
+                    group: 'forwarding',
+                    inputKey: 'local_forward',
+                    placeholder: '格式: [本地IP:]本地端口:远程主机:远程端口，如: 8080:192.168.1.100:80'
+                },
+                {
+                    flag: '-D',
+                    description: '动态端口转发 (SOCKS代理)',
+                    type: 'input',
+                    group: 'forwarding',
+                    inputKey: 'dynamic_forward',
+                    placeholder: '格式: [本地IP:]本地端口，如: 1080 或 127.0.0.1:1080'
+                },
+                {
+                    flag: '-R',
+                    description: '远程端口转发 (远程转发)',
+                    type: 'input',
+                    group: 'forwarding',
+                    inputKey: 'remote_forward',
+                    placeholder: '格式: [远程IP:]远程端口:本地主机:本地端口，如: 8080:localhost:80'
+                },
+                {
+                    flag: '-g',
+                    description: '允许远程主机连接本机的转发端口',
+                    type: 'boolean',
+                    group: 'forwarding'
+                },
+                {
+                    flag: '-x',
+                    description: '关闭X11转发功能',
+                    type: 'boolean',
+                    group: 'forwarding'
                 },
                 {
                     flag: '-X',
-                    description: '启用X11转发',
+                    description: '开启X11转发功能',
                     type: 'boolean',
-                    group: 'options'
+                    group: 'forwarding'
                 },
                 {
-                    flag: '-C',
-                    description: '启用压缩',
+                    flag: '-y',
+                    description: '信任X11转发功能',
                     type: 'boolean',
-                    group: 'options'
+                    group: 'forwarding'
+                },
+                // 其他
+                {
+                    flag: '-s',
+                    description: '请求远程主机上的子系统调用',
+                    type: 'input',
+                    group: 'other',
+                    inputKey: 'subsystem',
+                    placeholder: '子系统名称，如: sftp'
                 },
                 {
-                    flag: '-N',
-                    description: '不执行远程命令',
+                    flag: '-V',
+                    description: '显示版本信息',
                     type: 'boolean',
-                    group: 'options'
+                    group: 'other'
                 },
+                // 目标主机（必需）
                 {
                     flag: '',
-                    description: '目标主机（[用户@]主机名）',
+                    description: '目标主机域名或IP地址',
                     type: 'input',
                     group: 'target',
-                    placeholder: '如: user@192.168.1.100',
-                    inputKey: 'target_host',
+                    inputKey: 'host',
+                    placeholder: '域名或IP地址，如: 192.168.1.100',
                     required: true
                 }
             ],
@@ -1502,6 +1726,7 @@ export const useCommandsStore = defineStore('commands', () => {
             hot: true,
             icon: '⚡',
             options: [
+                // 字段和分隔符
                 {
                     flag: '-F',
                     description: '设置输入时的字段分隔符',
@@ -1511,6 +1736,15 @@ export const useCommandsStore = defineStore('commands', () => {
                     inputKey: 'field_separator'
                 },
                 {
+                    flag: '-W',
+                    description: '设置兼容模式或警告级别',
+                    type: 'select',
+                    group: 'mode',
+                    options: ['compat', 'traditional', 'posix'],
+                    inputKey: 'compat_mode'
+                },
+                // 变量和赋值
+                {
                     flag: '-v',
                     description: '定义一个变量并赋值',
                     type: 'input',
@@ -1518,6 +1752,7 @@ export const useCommandsStore = defineStore('commands', () => {
                     placeholder: '输入变量赋值，如: var=value',
                     inputKey: 'variable'
                 },
+                // 脚本文件
                 {
                     flag: '-f',
                     description: '从脚本中读取awk命令',
@@ -1526,6 +1761,7 @@ export const useCommandsStore = defineStore('commands', () => {
                     placeholder: '输入脚本文件路径',
                     inputKey: 'script_file'
                 },
+                // 输出和调试
                 {
                     flag: '-c',
                     description: '使用兼容模式',
@@ -1544,6 +1780,40 @@ export const useCommandsStore = defineStore('commands', () => {
                     type: 'boolean',
                     group: 'info'
                 },
+                {
+                    flag: '--help',
+                    description: '显示帮助信息',
+                    type: 'boolean',
+                    group: 'info'
+                },
+                {
+                    flag: '--version',
+                    description: '显示版本信息',
+                    type: 'boolean',
+                    group: 'info'
+                },
+                // 执行选项
+                {
+                    flag: '-e',
+                    description: '直接指定AWK程序',
+                    type: 'input',
+                    group: 'program',
+                    placeholder: '输入AWK程序，如: {print $1}',
+                    inputKey: 'program_text'
+                },
+                {
+                    flag: '--traditional',
+                    description: '禁用所有gawk特定扩展',
+                    type: 'boolean',
+                    group: 'mode'
+                },
+                {
+                    flag: '--posix',
+                    description: '开启严格POSIX模式',
+                    type: 'boolean',
+                    group: 'mode'
+                },
+                // 输入参数
                 {
                     flag: '',
                     description: 'AWK程序（用单引号括起）',
@@ -5165,6 +5435,375 @@ target     prot opt source               destination`
             relatedCommands: ['ufw', 'firewalld', 'ip6tables', 'netfilter']
         },
 
+        // UFW 防火墙管理工具
+        {
+            id: 'ufw',
+            name: 'ufw',
+            category: 'network-tools',
+            description: 'Ubuntu防火墙管理工具',
+            usage: 'ufw [选项] 动作',
+            difficulty: 3,
+            isHot: true,
+            icon: '🛡️',
+            options: [
+                // 基本操作
+                {
+                    flag: 'enable',
+                    description: '启用防火墙',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                {
+                    flag: 'disable',
+                    description: '禁用防火墙',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                {
+                    flag: 'reset',
+                    description: '重置所有规则到安装时默认值',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                {
+                    flag: 'reload',
+                    description: '重新加载防火墙',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                // 状态查看
+                {
+                    flag: 'status',
+                    description: '显示防火墙状态和规则',
+                    type: 'select',
+                    group: 'status',
+                    options: ['', 'verbose', 'numbered'],
+                    inputKey: 'status_option'
+                },
+                {
+                    flag: 'version',
+                    description: '显示版本信息',
+                    type: 'boolean',
+                    group: 'info'
+                },
+                // 规则管理
+                {
+                    flag: 'allow',
+                    description: '允许连接',
+                    type: 'input',
+                    group: 'rules',
+                    placeholder: '端口或服务，如: 22/tcp',
+                    inputKey: 'allow_rule'
+                },
+                {
+                    flag: 'deny',
+                    description: '拒绝连接',
+                    type: 'input',
+                    group: 'rules',
+                    placeholder: '端口或服务，如: 80/tcp',
+                    inputKey: 'deny_rule'
+                },
+                {
+                    flag: 'reject',
+                    description: '拒绝连接并返回错误',
+                    type: 'input',
+                    group: 'rules',
+                    placeholder: '端口或服务，如: 443/tcp',
+                    inputKey: 'reject_rule'
+                },
+                {
+                    flag: 'delete',
+                    description: '删除规则',
+                    type: 'input',
+                    group: 'rules',
+                    placeholder: '规则编号或规则内容',
+                    inputKey: 'delete_rule'
+                },
+                {
+                    flag: 'insert',
+                    description: '在指定位置插入规则',
+                    type: 'input',
+                    group: 'rules',
+                    placeholder: '位置 规则，如: 1 allow 22/tcp',
+                    inputKey: 'insert_rule'
+                },
+                // 高级选项
+                {
+                    flag: 'from',
+                    description: '指定源地址',
+                    type: 'input',
+                    group: 'advanced',
+                    placeholder: 'IP地址，如: 192.168.1.100',
+                    inputKey: 'from_address'
+                },
+                {
+                    flag: 'to',
+                    description: '指定目标地址',
+                    type: 'input',
+                    group: 'advanced',
+                    placeholder: 'IP地址，如: any',
+                    inputKey: 'to_address'
+                },
+                {
+                    flag: 'on',
+                    description: '指定网络接口',
+                    type: 'input',
+                    group: 'advanced',
+                    placeholder: '接口名，如: eth0',
+                    inputKey: 'interface'
+                },
+                // 日志选项
+                {
+                    flag: 'logging',
+                    description: '设置日志级别',
+                    type: 'select',
+                    group: 'logging',
+                    options: ['on', 'off', 'low', 'medium', 'high', 'full'],
+                    inputKey: 'logging_level'
+                },
+                // 默认策略
+                {
+                    flag: 'default',
+                    description: '设置默认策略',
+                    type: 'select',
+                    group: 'policy',
+                    options: ['allow', 'deny', 'reject'],
+                    inputKey: 'default_policy'
+                },
+                // 应用配置文件
+                {
+                    flag: 'app',
+                    description: '管理应用配置文件',
+                    type: 'select',
+                    group: 'application',
+                    options: ['list', 'info', 'update'],
+                    inputKey: 'app_action'
+                }
+            ],
+            examples: [
+                {
+                    scenario: 'enable',
+                    command: 'ufw enable',
+                    description: '启用UFW防火墙',
+                    mockOutput: 'Firewall is active and enabled on system startup\n'
+                },
+                {
+                    scenario: 'status',
+                    command: 'ufw status',
+                    description: '查看防火墙状态',
+                    mockOutput: 'Status: active\n\nTo                         Action      From\n--                         ------      ----\n22/tcp                     ALLOW       Anywhere\n80/tcp                     ALLOW       Anywhere\n'
+                },
+                {
+                    scenario: 'allow',
+                    command: 'ufw allow 22/tcp',
+                    description: '允许SSH连接',
+                    mockOutput: 'Rule added\nRule added (v6)\n'
+                }
+            ],
+            relatedCommands: ['iptables', 'firewall-cmd', 'gufw']
+        },
+
+        // firewall-cmd 防火墙策略管理工具
+        {
+            id: 'firewall-cmd',
+            name: 'firewall-cmd',
+            category: 'network-tools',
+            description: '防火墙策略管理工具',
+            usage: 'firewall-cmd 参数 对象',
+            difficulty: 4,
+            isHot: true,
+            icon: '🔥',
+            options: [
+                // 基本状态管理
+                {
+                    flag: '--state',
+                    description: '显示当前服务运行状态',
+                    type: 'boolean',
+                    group: 'status'
+                },
+                {
+                    flag: '--reload',
+                    description: '立即加载永久生效策略，不重启服务',
+                    type: 'boolean',
+                    group: 'management'
+                },
+                {
+                    flag: '--panic-on',
+                    description: '开启紧急模式',
+                    type: 'boolean',
+                    group: 'management'
+                },
+                {
+                    flag: '--panic-off',
+                    description: '关闭紧急模式',
+                    type: 'boolean',
+                    group: 'management'
+                },
+                {
+                    flag: '--query-panic',
+                    description: '显示是否被拒绝',
+                    type: 'boolean',
+                    group: 'status'
+                },
+                // 区域管理
+                {
+                    flag: '--get-default-zone',
+                    description: '显示默认的区域名称',
+                    type: 'boolean',
+                    group: 'zone'
+                },
+                {
+                    flag: '--set-default-zone',
+                    description: '设置默认的区域',
+                    type: 'input',
+                    group: 'zone',
+                    placeholder: '区域名，如: public',
+                    inputKey: 'default_zone'
+                },
+                {
+                    flag: '--get-zones',
+                    description: '显示可用的区域列表',
+                    type: 'boolean',
+                    group: 'zone'
+                },
+                {
+                    flag: '--get-active-zones',
+                    description: '显示当前正在使用的区域与网卡名称',
+                    type: 'boolean',
+                    group: 'zone'
+                },
+                {
+                    flag: '--list-all',
+                    description: '显示当前区域的网卡配置参数、资源、端口及服务',
+                    type: 'boolean',
+                    group: 'zone'
+                },
+                {
+                    flag: '--list-all-zones',
+                    description: '显示区域信息情况',
+                    type: 'boolean',
+                    group: 'zone'
+                },
+                // 端口管理
+                {
+                    flag: '--add-port',
+                    description: '设置允许的端口',
+                    type: 'input',
+                    group: 'port',
+                    placeholder: '端口/协议，如: 8080/tcp',
+                    inputKey: 'add_port'
+                },
+                {
+                    flag: '--remove-port',
+                    description: '设置默认区域不再允许指定端口的流量',
+                    type: 'input',
+                    group: 'port',
+                    placeholder: '端口/协议，如: 8080/tcp',
+                    inputKey: 'remove_port'
+                },
+                {
+                    flag: '--list-ports',
+                    description: '显示所有正在运行的端口',
+                    type: 'boolean',
+                    group: 'port'
+                },
+                // 服务管理
+                {
+                    flag: '--add-service',
+                    description: '设置允许的服务',
+                    type: 'input',
+                    group: 'service',
+                    placeholder: '服务名，如: ssh',
+                    inputKey: 'add_service'
+                },
+                {
+                    flag: '--remove-service',
+                    description: '设置默认区域不再允许指定服务的流量',
+                    type: 'input',
+                    group: 'service',
+                    placeholder: '服务名，如: http',
+                    inputKey: 'remove_service'
+                },
+                {
+                    flag: '--get-services',
+                    description: '显示预先定义的服务',
+                    type: 'boolean',
+                    group: 'service'
+                },
+                // 网络接口管理
+                {
+                    flag: '--add-interface',
+                    description: '将指定网卡的所有流量都导向某区域',
+                    type: 'input',
+                    group: 'interface',
+                    placeholder: '网卡名，如: eth0',
+                    inputKey: 'add_interface'
+                },
+                {
+                    flag: '--change-interface',
+                    description: '设置网卡与区域进行关联',
+                    type: 'input',
+                    group: 'interface',
+                    placeholder: '网卡名，如: eth1',
+                    inputKey: 'change_interface'
+                },
+                // 源地址管理
+                {
+                    flag: '--add-source',
+                    description: '将指定IP地址的所有流量都导向某区域',
+                    type: 'input',
+                    group: 'source',
+                    placeholder: 'IP地址或网段，如: 192.168.1.0/24',
+                    inputKey: 'add_source'
+                },
+                {
+                    flag: '--remove-source',
+                    description: '不要将指定IP地址的所有流量导向某区域',
+                    type: 'input',
+                    group: 'source',
+                    placeholder: 'IP地址或网段，如: 192.168.1.0/24',
+                    inputKey: 'remove_source'
+                },
+                // 永久配置
+                {
+                    flag: '--permanent',
+                    description: '将策略写入永久生效表',
+                    type: 'boolean',
+                    group: 'persistence'
+                },
+                // 区域指定
+                {
+                    flag: '--zone',
+                    description: '指定要操作的区域',
+                    type: 'select',
+                    group: 'target',
+                    options: ['public', 'dmz', 'work', 'home', 'internal', 'external', 'trusted', 'drop', 'block'],
+                    inputKey: 'target_zone'
+                }
+            ],
+            examples: [
+                {
+                    scenario: 'status',
+                    command: 'firewall-cmd --state',
+                    description: '查看防火墙状态',
+                    mockOutput: 'running\n'
+                },
+                {
+                    scenario: 'list-ports',
+                    command: 'firewall-cmd --zone=public --list-ports',
+                    description: '查看公共区域开放的端口',
+                    mockOutput: '80/tcp 443/tcp 22/tcp\n'
+                },
+                {
+                    scenario: 'add-port',
+                    command: 'firewall-cmd --zone=public --add-port=8080/tcp --permanent',
+                    description: '永久开放8080端口',
+                    mockOutput: 'success\n'
+                }
+            ],
+            relatedCommands: ['iptables', 'ufw', 'systemctl']
+        },
+
         // 新增：输入输出重定向类命令
         {
             id: 'printf',
@@ -6787,6 +7426,424 @@ target     prot opt source               destination`
                 }
             ],
             relatedCommands: ['du', 'mount', 'lsblk', 'fdisk']
+        },
+        {
+            id: 'nc',
+            name: 'nc',
+            category: 'network-tools',
+            description: 'netcat - 网络连接工具，被称为"网络瑞士军刀"',
+            usage: 'nc [参数] [主机] [端口]',
+            difficulty: 4,
+            isHot: true,
+            icon: '🔗',
+            options: [
+                // 基本连接参数
+                {
+                    flag: '-l',
+                    description: '监听模式，等待连接',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                {
+                    flag: '-p',
+                    description: '指定本地端口',
+                    type: 'input',
+                    group: 'basic',
+                    inputKey: 'local_port',
+                    placeholder: '端口号，如: 8080'
+                },
+                {
+                    flag: '-u',
+                    description: '使用UDP协议而非TCP',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                {
+                    flag: '-v',
+                    description: '详细输出模式',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                {
+                    flag: '-n',
+                    description: '不进行DNS解析',
+                    type: 'boolean',
+                    group: 'basic'
+                },
+                // 连接控制
+                {
+                    flag: '-w',
+                    description: '设置连接超时时间（秒）',
+                    type: 'input',
+                    group: 'connection',
+                    inputKey: 'timeout',
+                    placeholder: '超时时间，如: 10'
+                },
+                {
+                    flag: '-z',
+                    description: '零I/O模式，仅扫描端口',
+                    type: 'boolean',
+                    group: 'connection'
+                },
+                {
+                    flag: '-k',
+                    description: '保持连接，监听多个连接',
+                    type: 'boolean',
+                    group: 'connection'
+                },
+                // 数据传输
+                {
+                    flag: '-e',
+                    description: '执行程序',
+                    type: 'input',
+                    group: 'data',
+                    inputKey: 'execute',
+                    placeholder: '要执行的程序，如: /bin/bash'
+                },
+                {
+                    flag: '-c',
+                    description: '发送CRLF作为行结束符',
+                    type: 'boolean',
+                    group: 'data'
+                },
+                // 网络选项
+                {
+                    flag: '-4',
+                    description: '强制使用IPv4',
+                    type: 'boolean',
+                    group: 'network'
+                },
+                {
+                    flag: '-6',
+                    description: '强制使用IPv6',
+                    type: 'boolean',
+                    group: 'network'
+                },
+                {
+                    flag: '-s',
+                    description: '指定源IP地址',
+                    type: 'input',
+                    group: 'network',
+                    inputKey: 'source_ip',
+                    placeholder: '源IP地址，如: 192.168.1.100'
+                },
+                // 高级选项
+                {
+                    flag: '-q',
+                    description: '静默模式，接收到EOF后等待指定秒数',
+                    type: 'input',
+                    group: 'advanced',
+                    inputKey: 'quiet_seconds',
+                    placeholder: '等待秒数，如: 1'
+                },
+                {
+                    flag: '-i',
+                    description: '设置发送和接收的延迟间隔',
+                    type: 'input',
+                    group: 'advanced',
+                    inputKey: 'interval',
+                    placeholder: '间隔秒数，如: 1'
+                }
+            ],
+            examples: [
+                {
+                    command: 'nc -l -p 8080',
+                    description: '监听8080端口',
+                    scenario: 'listen_mode'
+                },
+                {
+                    command: 'nc -zv google.com 80',
+                    description: '扫描google.com的80端口',
+                    scenario: 'port_scan'
+                },
+                {
+                    command: 'nc 192.168.1.100 22',
+                    description: '连接到192.168.1.100的22端口',
+                    scenario: 'connect_mode'
+                },
+                {
+                    command: 'nc -u -l -p 53',
+                    description: '以UDP模式监听53端口',
+                    scenario: 'udp_mode'
+                }
+            ],
+            scenarios: [
+                {
+                    name: 'listen_mode',
+                    description: '监听模式',
+                    mockOutput: 'listening on [any] 8080 ...\nconnect to [127.0.0.1] from localhost [127.0.0.1] 45678'
+                },
+                {
+                    name: 'port_scan',
+                    description: '端口扫描',
+                    mockOutput: 'Connection to google.com 80 port [tcp/http] succeeded!'
+                },
+                {
+                    name: 'connect_mode',
+                    description: '连接模式',
+                    mockOutput: 'SSH-2.0-OpenSSH_8.0'
+                },
+                {
+                    name: 'udp_mode',
+                    description: 'UDP模式',
+                    mockOutput: 'listening on [any] 53 ...'
+                }
+            ],
+            relatedCommands: ['telnet', 'ssh', 'nmap', 'socat']
+        },
+        {
+            id: 'openssl',
+            name: 'openssl',
+            category: 'network-tools',
+            description: 'OpenSSL - 强大的加密工具包',
+            usage: 'openssl [子命令] [参数]',
+            difficulty: 5,
+            isHot: true,
+            icon: '🔐',
+            options: [
+                // 证书操作
+                {
+                    flag: 'req',
+                    description: '证书请求操作',
+                    type: 'boolean',
+                    group: 'certificate'
+                },
+                {
+                    flag: 'x509',
+                    description: 'X.509证书操作',
+                    type: 'boolean',
+                    group: 'certificate'
+                },
+                {
+                    flag: 'rsa',
+                    description: 'RSA密钥操作',
+                    type: 'boolean',
+                    group: 'certificate'
+                },
+                {
+                    flag: 'genrsa',
+                    description: '生成RSA私钥',
+                    type: 'boolean',
+                    group: 'certificate'
+                },
+                // 网络测试
+                {
+                    flag: 's_client',
+                    description: 'SSL/TLS客户端',
+                    type: 'boolean',
+                    group: 'network'
+                },
+                {
+                    flag: 's_server',
+                    description: 'SSL/TLS服务器',
+                    type: 'boolean',
+                    group: 'network'
+                },
+                // 加密解密
+                {
+                    flag: 'enc',
+                    description: '对称加密/解密',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                {
+                    flag: 'dgst',
+                    description: '消息摘要',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                // 通用参数
+                {
+                    flag: '-in',
+                    description: '输入文件',
+                    type: 'input',
+                    group: 'io',
+                    inputKey: 'input_file',
+                    placeholder: '输入文件路径，如: cert.pem'
+                },
+                {
+                    flag: '-out',
+                    description: '输出文件',
+                    type: 'input',
+                    group: 'io',
+                    inputKey: 'output_file',
+                    placeholder: '输出文件路径，如: key.pem'
+                },
+                {
+                    flag: '-text',
+                    description: '以文本格式输出',
+                    type: 'boolean',
+                    group: 'io'
+                },
+                {
+                    flag: '-noout',
+                    description: '不输出编码版本',
+                    type: 'boolean',
+                    group: 'io'
+                },
+                // 证书生成参数
+                {
+                    flag: '-new',
+                    description: '生成新的证书请求',
+                    type: 'boolean',
+                    group: 'generation'
+                },
+                {
+                    flag: '-x509',
+                    description: '生成自签名证书',
+                    type: 'boolean',
+                    group: 'generation'
+                },
+                {
+                    flag: '-days',
+                    description: '证书有效期（天）',
+                    type: 'input',
+                    group: 'generation',
+                    inputKey: 'validity_days',
+                    placeholder: '有效期天数，如: 365'
+                },
+                {
+                    flag: '-key',
+                    description: '私钥文件',
+                    type: 'input',
+                    group: 'generation',
+                    inputKey: 'private_key',
+                    placeholder: '私钥文件路径，如: private.key'
+                },
+                {
+                    flag: '-keyout',
+                    description: '输出私钥文件',
+                    type: 'input',
+                    group: 'generation',
+                    inputKey: 'key_output',
+                    placeholder: '私钥输出路径，如: private.key'
+                },
+                {
+                    flag: '-subj',
+                    description: '证书主题信息',
+                    type: 'input',
+                    group: 'generation',
+                    inputKey: 'subject',
+                    placeholder: '主题，如: /C=CN/ST=Beijing/L=Beijing/O=Company/CN=example.com'
+                },
+                // 网络连接参数
+                {
+                    flag: '-connect',
+                    description: '连接到指定主机和端口',
+                    type: 'input',
+                    group: 'network',
+                    inputKey: 'connect_host',
+                    placeholder: '主机:端口，如: google.com:443'
+                },
+                {
+                    flag: '-servername',
+                    description: 'SNI服务器名称',
+                    type: 'input',
+                    group: 'network',
+                    inputKey: 'server_name',
+                    placeholder: '服务器名称，如: google.com'
+                },
+                {
+                    flag: '-verify',
+                    description: '验证证书链深度',
+                    type: 'input',
+                    group: 'network',
+                    inputKey: 'verify_depth',
+                    placeholder: '验证深度，如: 2'
+                },
+                // 加密参数
+                {
+                    flag: '-aes256',
+                    description: '使用AES-256加密',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                {
+                    flag: '-des3',
+                    description: '使用3DES加密',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                {
+                    flag: '-base64',
+                    description: 'Base64编码/解码',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                {
+                    flag: '-d',
+                    description: '解密模式',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                {
+                    flag: '-md5',
+                    description: 'MD5摘要',
+                    type: 'boolean',
+                    group: 'encryption'
+                },
+                {
+                    flag: '-sha256',
+                    description: 'SHA-256摘要',
+                    type: 'boolean',
+                    group: 'encryption'
+                }
+            ],
+            examples: [
+                {
+                    command: 'openssl genrsa -out private.key 2048',
+                    description: '生成2048位RSA私钥',
+                    scenario: 'generate_key'
+                },
+                {
+                    command: 'openssl req -new -x509 -key private.key -out cert.pem -days 365',
+                    description: '生成自签名证书',
+                    scenario: 'generate_cert'
+                },
+                {
+                    command: 'openssl s_client -connect google.com:443',
+                    description: '测试SSL连接',
+                    scenario: 'test_ssl'
+                },
+                {
+                    command: 'openssl x509 -in cert.pem -text -noout',
+                    description: '查看证书信息',
+                    scenario: 'view_cert'
+                },
+                {
+                    command: 'openssl enc -aes256 -in file.txt -out file.enc',
+                    description: '使用AES-256加密文件',
+                    scenario: 'encrypt_file'
+                }
+            ],
+            scenarios: [
+                {
+                    name: 'generate_key',
+                    description: '生成私钥',
+                    mockOutput: 'Generating RSA private key, 2048 bit long modulus\n..+++\n..+++\ne is 65537 (0x10001)'
+                },
+                {
+                    name: 'generate_cert',
+                    description: '生成证书',
+                    mockOutput: 'You are about to be asked to enter information that will be incorporated\ninto your certificate request.\nCountry Name (2 letter code) [XX]:CN\nState or Province Name (full name) []:Beijing'
+                },
+                {
+                    name: 'test_ssl',
+                    description: 'SSL连接测试',
+                    mockOutput: 'CONNECTED(00000003)\ndepth=2 C = US, O = Google Trust Services, CN = GTS Root CA\nverify return:1\n---\nCertificate chain\n 0 s:CN = *.google.com\n   i:C = US, O = Google Trust Services, CN = GTS CA 1C3'
+                },
+                {
+                    name: 'view_cert',
+                    description: '查看证书',
+                    mockOutput: 'Certificate:\n    Data:\n        Version: 3 (0x2)\n        Serial Number:\n            xx:xx:xx:xx:xx:xx:xx:xx\n        Signature Algorithm: sha256WithRSAEncryption\n        Issuer: C = CN, ST = Beijing, L = Beijing, O = Company, CN = example.com'
+                },
+                {
+                    name: 'encrypt_file',
+                    description: '加密文件',
+                    mockOutput: 'enter aes-256-cbc encryption password:\nVerifying - enter aes-256-cbc encryption password:'
+                }
+            ],
+            relatedCommands: ['ssh', 'gpg', 'keytool', 'certbot']
         }
     ])
 
