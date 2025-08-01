@@ -36,10 +36,9 @@
             <!-- 右侧结果展示区 -->
             <div class="result-panel">
                 <div class="glass-panel h-full">
-                    <ResultDisplay
+                    <SplitResultDisplay
                         :command="generatedCommand"
                         :output="commandOutput"
-                        :loading="outputLoading"
                     />
                 </div>
             </div>
@@ -81,7 +80,7 @@ import { useCommandsStore } from '@/stores/commands'
 import { useFilesystemStore } from '@/stores/filesystem'
 import CommandNavigator from '@/components/CommandNavigator.vue'
 import ParameterBuilder from '@/components/ParameterBuilder.vue'
-import ResultDisplay from '@/components/ResultDisplay.vue'
+import SplitResultDisplay from '@/components/SplitResultDisplay.vue'
 import AnimatedBackground from '@/components/AnimatedBackground.vue'
 
 // Store
