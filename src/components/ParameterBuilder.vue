@@ -345,6 +345,10 @@ const generatedCommand = computed(() => {
 
 // 方法
 const isParameterSelected = (parameter) => {
+  // 只有布尔类型的参数才需要检查选择状态
+  if (parameter.type !== 'boolean') {
+    return false
+  }
   return props.selectedParameters.some(p => p.flag === parameter.flag)
 }
 

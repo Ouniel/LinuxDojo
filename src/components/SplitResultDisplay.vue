@@ -18,6 +18,7 @@
       <MacTerminal 
         :title="terminalTitle"
         :initial-path="currentPath"
+        :external-command="shouldExecuteCommand ? props.command : ''"
         @command-executed="handleCommandExecuted"
         @close="handleTerminalClose"
         @minimize="handleTerminalMinimize"
@@ -54,6 +55,7 @@ const fileInfoHeight = ref(300)
 const lastCommand = ref('')
 const lastCommandOutput = ref('')
 const terminalTitle = ref('contact@mazesec:~')
+const shouldExecuteCommand = ref(false)
 
 // 计算属性
 const minFileInfoHeight = 200
@@ -160,7 +162,20 @@ const startResize = (e) => {
 watch([() => props.command, () => props.output], ([newCommand, newOutput]) => {
   if (newCommand) {
     lastCommand.value = newCommand
-    lastCommandOutput.value = newOutput || '命令执行完成'
+    
+    // 只有当有输出时才认为是执行命令，否则只是选择命令
+    if (newOutput) {
+      lastCommandOutput.value = newOutput
+      shouldExecuteCommand.value = true
+      
+      // 执行完成后重置标志
+      nextTick(() => {
+        shouldExecuteCommand.value = false
+      })
+    } else {
+      // 只是选择命令，不执行
+      shouldExecuteCommand.value = false
+    }
   }
 })
 

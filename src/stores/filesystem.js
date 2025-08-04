@@ -159,26 +159,80 @@ export const useFilesystemStore = defineStore('filesystem', {
 
   actions: {
     changeDirectory(newPath) {
-      // 规范化路径
-      if (newPath === '~' || newPath === '/home/favork') {
+      console.log('filesystem changeDirectory called with:', newPath)
+      console.log('Current filesystem path:', this.currentPath)
+      
+      // 处理特殊路径
+      if (newPath === '~' || newPath === '/home/favork' || newPath === '') {
         this.currentPath = '/home/favork'
+        console.log('Changed to home directory')
         return true
       }
       
-      // 检查路径是否存在
-      const pathParts = newPath.split('/').filter(part => part !== '')
+      // 处理相对路径
+      let targetPath = newPath
+      if (!newPath.startsWith('/')) {
+        // 相对路径，基于当前路径构建
+        if (newPath === '..') {
+          // 返回上级目录
+          const currentParts = this.currentPath.split('/').filter(part => part !== '')
+          if (currentParts.length <= 2) {
+            // 已经在 /home/favork，不能再往上（模拟权限限制）
+            console.log('Already at home directory, cannot go up')
+            return false
+          }
+          currentParts.pop()
+          targetPath = '/' + currentParts.join('/')
+        } else {
+          // 普通相对路径 - 支持大小写不敏感匹配
+          const basePath = this.currentPath === '/home/favork' ? '/home/favork' : this.currentPath
+          
+          // 获取当前目录的子目录，进行大小写不敏感匹配
+          const currentFiles = this.getCurrentDirectoryContents
+          const matchingDir = currentFiles.find(file => 
+            file.type === 'directory' && file.name.toLowerCase() === newPath.toLowerCase()
+          )
+          
+          if (matchingDir) {
+            targetPath = `${basePath}/${matchingDir.name}` // 使用实际的目录名
+          } else {
+            targetPath = `${basePath}/${newPath}`
+          }
+        }
+      }
+      
+      console.log('Target path resolved to:', targetPath)
+      
+      // 验证路径是否存在
+      const pathParts = targetPath.split('/').filter(part => part !== '')
+      console.log('Path parts to validate:', pathParts)
+      
       let current = this.fileSystem['/']
+      console.log('Starting from root:', Object.keys(current.children || {}))
       
       for (const part of pathParts) {
+        console.log('Checking part:', part)
+        console.log('Available children:', Object.keys(current.children || {}))
+        
         if (current.children && current.children[part] && current.children[part].type === 'directory') {
           current = current.children[part]
+          console.log('Successfully navigated to:', part)
         } else {
+          console.log('Failed to find directory:', part)
           return false // 路径不存在
         }
       }
       
-      this.currentPath = newPath
+      this.currentPath = targetPath
+      console.log('Successfully changed directory to:', targetPath)
       return true
+    },
+    // 获取相对路径显示（用于终端提示符）
+    getDisplayPath() {
+      if (this.currentPath === '/home/favork') {
+        return '~'
+      }
+      return this.currentPath.replace('/home/favork', '~')
     },
 
     getFileContent(filename) {

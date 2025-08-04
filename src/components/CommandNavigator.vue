@@ -238,7 +238,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useCommandsStore } from '../stores/commands'
+import { useUIStore } from '../stores/ui'
 
 // Props
 const props = defineProps({
@@ -252,7 +252,7 @@ const props = defineProps({
 const emit = defineEmits(['command-selected'])
 
 // Store
-const commandsStore = useCommandsStore()
+const uiStore = useUIStore()
 
 // 响应式数据
 const searchQuery = ref('')
@@ -265,10 +265,10 @@ const expandedCategories = ref(['file-operations']) // 默认展开文件操作�
 // 计算属性
 const categories = computed(() => {
   // 动态计算每个分类的命令数量
-  const categoriesWithCount = commandsStore.categories.map(category => {
+  const categoriesWithCount = uiStore.categories.map(category => {
     const count = category.id === 'all' 
-      ? commandsStore.commands.length 
-      : commandsStore.commands.filter(cmd => cmd.category === category.id).length
+      ? uiStore.commands.length 
+      : uiStore.commands.filter(cmd => cmd.category === category.id).length
     
     return {
       ...category,
@@ -280,7 +280,7 @@ const categories = computed(() => {
 })
 
 const filteredCommands = computed(() => {
-  let commands = commandsStore.commands
+  let commands = uiStore.commands
   
   // 分类过滤
   if (selectedCategory.value !== 'all') {
@@ -308,12 +308,12 @@ const searchResults = computed(() => {
   const query = searchQuery.value.toLowerCase()
   const results = []
   
-  commandsStore.commands.forEach(command => {
+  uiStore.commands.forEach(command => {
     if (command.name.toLowerCase().includes(query) ||
         command.description.toLowerCase().includes(query)) {
       
       // 找到命令所属的分类
-      const category = commandsStore.categories.find(cat => cat.id === command.category)
+      const category = uiStore.categories.find(cat => cat.id === command.category)
       
       results.push({
         command: command,
@@ -326,7 +326,7 @@ const searchResults = computed(() => {
   return results
 })
 
-const totalCommands = computed(() => commandsStore.commands.length)
+const totalCommands = computed(() => uiStore.commands.length)
 
 const progressPercentage = computed(() => {
   return totalCommands.value > 0 ? Math.round((learnedCommands.value / totalCommands.value) * 100) : 0
@@ -438,16 +438,16 @@ const toggleCategory = (categoryId) => {
 // 获取指定分类下的命令
 const getCommandsByCategory = (categoryId) => {
   if (categoryId === 'all') {
-    return commandsStore.commands
+    return uiStore.commands
   }
-  return commandsStore.commands.filter(cmd => cmd.category === categoryId)
+  return uiStore.commands.filter(cmd => cmd.category === categoryId)
 }
 
 // 组件挂载时设置默认选择
 onMounted(() => {
-  if (!props.selectedCommand && commandsStore.commands.length > 0) {
+  if (!props.selectedCommand && uiStore.commands.length > 0) {
     // 默认选择ls命令
-    const lsCommand = commandsStore.commands.find(cmd => cmd.name === 'ls')
+    const lsCommand = uiStore.commands.find(cmd => cmd.name === 'ls')
     if (lsCommand) {
       handleCommandSelect(lsCommand.id)
     }

@@ -37,7 +37,7 @@
             <div class="result-panel">
                 <div class="glass-panel h-full">
                     <SplitResultDisplay
-                        :command="generatedCommand"
+                        :command="executedCommand"
                         :output="commandOutput"
                     />
                 </div>
@@ -76,16 +76,16 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useCommandsStore } from '@/stores/commands'
-import { useFilesystemStore } from '@/stores/filesystem'
+import { useUIStore } from '@/stores/ui'
+import { useEnhancedFilesystemStore } from '@/stores/enhancedFilesystem'
 import CommandNavigator from '@/components/CommandNavigator.vue'
 import ParameterBuilder from '@/components/ParameterBuilder.vue'
 import SplitResultDisplay from '@/components/SplitResultDisplay.vue'
 import AnimatedBackground from '@/components/AnimatedBackground.vue'
 
 // Store
-const commandsStore = useCommandsStore()
-const filesystemStore = useFilesystemStore()
+const uiStore = useUIStore()
+const filesystemStore = useEnhancedFilesystemStore()
 
 // 响应式数据
 const selectedCommand = ref(null)
@@ -93,37 +93,38 @@ const selectedParameters = ref([])
 const userInputs = ref({})
 const outputLoading = ref(false)
 const isFullscreenMode = ref(false)
+const executedCommand = ref('')
 
-// 需要宽显示的命令列表
+// 需要宽显示的命令列表 - 这些命令通常输出内容较多，需要更大的显示空间
 const wideDisplayCommands = [
-    // 网络工具
-    'iptables', 'ping', 'netstat', 'traceroute', 'ss', 'nslookup', 'dig', 'curl', 'wget',
-    // 系统监控
+    // 网络工具 - 输出通常很长
+    'iptables', 'netstat', 'traceroute', 'ss', 'nslookup', 'dig',
+    // 系统监控 - 需要实时显示大量信息
     'ps', 'top', 'htop', 'df', 'du', 'free', 'lscpu', 'lsblk', 'vmstat', 'iostat',
-    // 进程管理
-    'systemctl', 'service', 'kill', 'killall', 'pgrep', 'pkill',
-    // 网络安全
+    // 进程管理 - 输出信息较多
+    'systemctl', 'service',
+    // 网络安全 - 输出详细信息
     'tcpdump', 'wireshark', 'nmap', 'ufw', 'firewall-cmd',
-    // 文件系统
-    'find', 'tree', 'mount', 'umount', 'fdisk', 'parted', 'lsof',
-    // 压缩归档
-    'tar', 'zip', 'unzip', 'gzip', 'gunzip',
-    // 数据传输
-    'rsync', 'scp', 'ssh'
+    // 文件系统 - 仅包含输出很长的命令
+    'tree', 'mount', 'lsof',
+    // 压缩归档 - 详细输出
+    'tar',
+    // 数据传输 - 详细进度信息
+    'rsync'
 ]
 
 // 计算属性
 const selectedCommandData = computed(() => {
     if (!selectedCommand.value) return null
-    return commandsStore.commands.find(cmd => cmd.id === selectedCommand.value)
+    return uiStore.commands.find(cmd => cmd.id === selectedCommand.value)
 })
 
 const generatedCommand = computed(() => {
-    return commandsStore.generateCommand()
+    return uiStore.generateCommand()
 })
 
 const commandOutput = computed(() => {
-    return commandsStore.commandOutput
+    return uiStore.commandOutput
 })
 
 // 检测当前命令是否需要宽显示
@@ -138,9 +139,9 @@ const handleCommandSelected = (commandId) => {
     selectedCommand.value = commandId
     
     // 找到对应的命令对象
-    const command = commandsStore.commands.find(cmd => cmd.id === commandId)
+    const command = uiStore.commands.find(cmd => cmd.id === commandId)
     if (command) {
-        commandsStore.selectCommand(command)
+        uiStore.selectCommand(command)
         selectedParameters.value = []
         userInputs.value = {}
         
@@ -159,23 +160,24 @@ const toggleFullscreenMode = () => {
 }
 
 const handleParameterToggled = (parameter) => {
-    commandsStore.toggleParameter(parameter)
+    uiStore.toggleParameter(parameter)
 }
 
 const handleUserInputChanged = (inputKey, value) => {
     userInputs.value[inputKey] = value
-    commandsStore.updateUserInput(inputKey, value)
+    uiStore.updateUserInput(inputKey, value)
 }
 
 const handleParametersClear = () => {
     selectedParameters.value = []
     userInputs.value = {}
-    commandsStore.clearParameters()
+    uiStore.clearParameters()
 }
 
 const handleCommandExecuted = (command) => {
     console.log('执行命令:', command)
     outputLoading.value = true
+    executedCommand.value = command
     
     // 解析命令
     const parts = command.split(' ')
@@ -229,15 +231,15 @@ const handleCommandExecuted = (command) => {
             output = filesystemStore.currentPath
         } else if (commandName === 'grep') {
             // 使用store的方法生成grep输出
-            output = commandsStore.getCommandOutput()
+            output = uiStore.getCommandOutput()
         } else if (commandName === 'iptables') {
             // 使用store的方法生成iptables输出
-            output = commandsStore.getCommandOutput()
+            output = uiStore.getCommandOutput()
         } else {
             output = `${commandName}: 命令未找到`
         }
         
-        commandsStore.setCommandOutput(output)
+        uiStore.setCommandOutput(output)
         outputLoading.value = false
     }, 1000)
 }
@@ -256,11 +258,11 @@ const getPermissionString = (permission) => {
 }
 
 // 监听store变化
-watch(() => commandsStore.selectedParameters, (newParams) => {
+watch(() => uiStore.selectedParameters, (newParams) => {
     selectedParameters.value = [...newParams]
 }, { deep: true })
 
-watch(() => commandsStore.userInputs, (newInputs) => {
+watch(() => uiStore.userInputs, (newInputs) => {
     userInputs.value = { ...newInputs }
 }, { deep: true })
 </script>
