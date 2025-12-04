@@ -47,6 +47,7 @@ import { bc } from './bc.js'
 import { watch } from './watch.js'
 import { xargs } from './xargs.js'
 import { read } from './read.js'
+import { list, listall } from './list.js'
 
 export const basicCommands = {
   ls,
@@ -92,7 +93,9 @@ export const basicCommands = {
   bc,
   watch,
   xargs,
-  read
+  read,
+  list,
+  listall
 }
 
 export default basicCommands

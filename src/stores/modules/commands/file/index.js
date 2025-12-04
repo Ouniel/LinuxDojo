@@ -11,6 +11,7 @@ import { gunzip } from './gunzip.js'
 import { zcat } from './zcat.js'
 import { compress } from './compress.js'
 import { uncompress } from './uncompress.js'
+import { openssl } from './openssl.js'
 
 export const fileCommands = {
   tar,
@@ -20,7 +21,8 @@ export const fileCommands = {
   gunzip,
   zcat,
   compress,
-  uncompress
+  uncompress,
+  openssl
 }
 
 // 命令已经通过fileCommands对象导出，无需重复导出
@@ -38,8 +40,8 @@ export function getFileCommands() {
 export function searchFileCommands(query) {
   const commands = getFileCommands()
   const lowerQuery = query.toLowerCase()
-  
-  return commands.filter(cmd => 
+
+  return commands.filter(cmd =>
     cmd.name.toLowerCase().includes(lowerQuery) ||
     cmd.description.toLowerCase().includes(lowerQuery) ||
     cmd.examples.some(example => example.toLowerCase().includes(lowerQuery))
@@ -54,7 +56,7 @@ export const fileCommandGroups = {
     description: 'File compression and decompression tools|文件压缩和解压工具'
   },
   archive: {
-    name: 'Archive Tools|归档工具', 
+    name: 'Archive Tools|归档工具',
     commands: ['tar', 'zip', 'unzip'],
     description: 'File and directory archiving tools|文件和目录归档工具'
   }

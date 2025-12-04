@@ -13,6 +13,10 @@ import { rsync } from './rsync.js'
 import { ss } from './ss.js'
 import { telnet } from './telnet.js'
 import { ftp } from './ftp.js'
+import { iptables } from './iptables.js'
+import { nc } from './nc.js'
+import { ifconfig } from './ifconfig.js'
+import { ip } from './ip.js'
 
 export const networkCommands = {
   ping,
@@ -24,7 +28,11 @@ export const networkCommands = {
   rsync,
   ss,
   telnet,
-  ftp
+  ftp,
+  iptables,
+  nc,
+  ifconfig,
+  ip
 }
 
 export default networkCommands

@@ -26,6 +26,9 @@ import { groupdel } from './groupdel.js'
 import { bg } from './bg.js'
 import { fg } from './fg.js'
 import { jobs } from './jobs.js'
+import { free } from './free.js'
+import { mount } from './mount.js'
+import { umount } from './umount.js'
 
 export const systemCommands = {
   ps,
@@ -50,7 +53,10 @@ export const systemCommands = {
   groupdel,
   bg,
   fg,
-  jobs
+  jobs,
+  free,
+  mount,
+  umount
 }
 
 export default systemCommands
