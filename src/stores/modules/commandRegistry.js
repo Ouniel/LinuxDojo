@@ -11,6 +11,8 @@ import { fileCommands } from './commands/file/index.js'
 import { helpCommands } from './commands/help.js'
 import { permissionCommands } from './commands/permission/index.js'
 import { processCommands } from './commands/process/index.js'
+import { diskCommands } from './commands/disk/index.js'
+import { packageCommands } from './commands/package/index.js'
 
 /**
  * 命令注册表
@@ -20,7 +22,7 @@ export class CommandRegistry {
     this.commands = new Map()
     this.categories = new Map()
     this.aliases = new Map()
-    
+
     // 注册所有命令模块
     this.registerCommands()
   }
@@ -37,7 +39,9 @@ export class CommandRegistry {
       { commands: fileCommands, category: 'file' },
       { commands: helpCommands, category: 'help' },
       { commands: permissionCommands, category: 'permission' },
-      { commands: processCommands, category: 'process' }
+      { commands: processCommands, category: 'process' },
+      { commands: diskCommands, category: 'disk' },
+      { commands: packageCommands, category: 'package' }
     ]
 
     modules.forEach(({ commands, category }) => {
@@ -57,14 +61,15 @@ export class CommandRegistry {
    * 注册单个命令
    */
   registerCommand(name, config) {
-    // 验证命令配置
-    if (!config.handler || typeof config.handler !== 'function') {
-      throw new Error(`Command ${name} must have a handler function`)
+    // 验证命令配置 - 支持 handler 或 execute 函数
+    const handler = config.handler || config.execute
+    if (!handler || typeof handler !== 'function') {
+      throw new Error(`Command ${name} must have a handler or execute function`)
     }
 
     this.commands.set(name, {
       name,
-      handler: config.handler,
+      handler: handler,
       description: config.description || 'No description available',
       category: config.category || 'misc',
       requiresArgs: config.requiresArgs || false,
@@ -169,7 +174,7 @@ export class CommandRegistry {
       if (config.hidden) return
 
       let score = 0
-      
+
       // 命令名匹配
       if (name.toLowerCase().includes(lowerQuery)) {
         score += name.toLowerCase() === lowerQuery ? 100 : 50
@@ -262,9 +267,9 @@ export class CommandRegistry {
     }
 
     if (command.requiresArgs && args.length === 0) {
-      return { 
-        valid: false, 
-        error: `Command '${name}' requires arguments. Use 'help ${name}' for usage information.` 
+      return {
+        valid: false,
+        error: `Command '${name}' requires arguments. Use 'help ${name}' for usage information.`
       }
     }
 
@@ -281,17 +286,17 @@ export class CommandRegistry {
     }
 
     const command = this.getCommand(name)
-    
+
     try {
       // 记录命令执行
       this.recordCommandExecution(name, args)
-      
+
       // 执行命令
       const result = await command.handler(args, context, filesystem)
-      
+
       // 处理不同的返回格式
       let output, exitCode = 0
-      
+
       if (typeof result === 'string') {
         // 简单字符串返回
         output = result
@@ -308,7 +313,7 @@ export class CommandRegistry {
         // 其他类型，转换为字符串
         output = String(result || '')
       }
-      
+
       return {
         success: exitCode === 0,
         output: output,
@@ -378,5 +383,5 @@ export const hasCommand = (name) => commandRegistry.hasCommand(name)
 export const getAllCommands = () => commandRegistry.getAllCommands()
 export const searchCommands = (query) => commandRegistry.searchCommands(query)
 export const getCompletions = (partial) => commandRegistry.getCompletions(partial)
-export const executeCommand = (name, args, context, filesystem) => 
+export const executeCommand = (name, args, context, filesystem) =>
   commandRegistry.executeCommand(name, args, context, filesystem)

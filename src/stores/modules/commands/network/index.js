@@ -17,6 +17,9 @@ import { iptables } from './iptables.js'
 import { nc } from './nc.js'
 import { ifconfig } from './ifconfig.js'
 import { ip } from './ip.js'
+import { traceroute } from './traceroute.js'
+import { dig } from './dig.js'
+import { host } from './host.js'
 
 export const networkCommands = {
   ping,
@@ -32,7 +35,10 @@ export const networkCommands = {
   iptables,
   nc,
   ifconfig,
-  ip
+  ip,
+  traceroute,
+  dig,
+  host
 }
 
 export default networkCommands

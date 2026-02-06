@@ -10,6 +10,8 @@ import { networkCommands } from './network/index.js'
 import { fileCommands } from './file/index.js'
 import { permissionCommands } from './permission/index.js'
 import { processCommands } from './process/index.js'
+import { diskCommands } from './disk/index.js'
+import { packageCommands } from './package/index.js'
 
 // 所有命令模块
 export const commandModules = {
@@ -19,7 +21,9 @@ export const commandModules = {
   network: networkCommands,
   file: fileCommands,
   permission: permissionCommands,
-  process: processCommands
+  process: processCommands,
+  disk: diskCommands,
+  package: packageCommands
 }
 
 // 合并所有命令
@@ -30,7 +34,9 @@ export const allCommands = {
   ...networkCommands,
   ...fileCommands,
   ...permissionCommands,
-  ...processCommands
+  ...processCommands,
+  ...diskCommands,
+  ...packageCommands
 }
 
 // 按类别导出
@@ -55,7 +61,7 @@ export function getCommandInfo(commandName) {
   if (!command) {
     return null
   }
-  
+
   return {
     name: commandName,
     description: command.description,
@@ -74,10 +80,10 @@ export function getCommandsByCategory(category) {
 export function searchCommands(query) {
   const results = []
   const lowerQuery = query.toLowerCase()
-  
+
   for (const [name, command] of Object.entries(allCommands)) {
-    if (name.toLowerCase().includes(lowerQuery) || 
-        command.description.toLowerCase().includes(lowerQuery)) {
+    if (name.toLowerCase().includes(lowerQuery) ||
+      command.description.toLowerCase().includes(lowerQuery)) {
       results.push({
         name,
         description: command.description,
@@ -85,7 +91,7 @@ export function searchCommands(query) {
       })
     }
   }
-  
+
   return results
 }
 

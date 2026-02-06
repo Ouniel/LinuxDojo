@@ -11,6 +11,10 @@ import { nohup } from './nohup.js'
 import { ps } from '../system/ps.js'
 import { top } from '../system/top.js'
 import { kill } from '../system/kill.js'
+import { killall } from '../system/killall.js'
+import { pkill } from '../system/pkill.js'
+import { pgrep } from '../system/pgrep.js'
+import { htop } from '../system/htop.js'
 
 export const processCommands = {
   jobs,
@@ -20,15 +24,31 @@ export const processCommands = {
   // 直接导入实际的命令对象，确保包含完整的options配置
   ps: {
     ...ps,
-    category: 'process' // 覆盖分类为process
+    category: 'process'
   },
   top: {
     ...top,
-    category: 'process' // 覆盖分类为process
+    category: 'process'
   },
   kill: {
     ...kill,
-    category: 'process' // 覆盖分类为process
+    category: 'process'
+  },
+  killall: {
+    ...killall,
+    category: 'process'
+  },
+  pkill: {
+    ...pkill,
+    category: 'process'
+  },
+  pgrep: {
+    ...pgrep,
+    category: 'process'
+  },
+  htop: {
+    ...htop,
+    category: 'process'
   }
 }
 
